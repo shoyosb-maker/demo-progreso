@@ -2,7 +2,8 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0e1a">
   <title>SentinelOps | Centro de Operaciones</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
@@ -27,8 +28,13 @@
       --radius: 10px;
       --radius-sm: 6px;
       --shadow: 0 4px 6px -1px rgba(0,0,0,0.4);
+      --sidebar-w: 240px;
+      --topbar-h: 64px;
     }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { -webkit-text-size-adjust: 100%; }
     html, body {
       height: 100%;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -36,30 +42,50 @@
       color: var(--text);
       -webkit-font-smoothing: antialiased;
       font-size: 14px;
+      overflow: hidden;
     }
-    button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; -webkit-tap-highlight-color: transparent; }
+    a { color: inherit; }
 
     /* ===== LAYOUT ===== */
-    .app { display: flex; height: 100vh; overflow: hidden; }
+    .app { display: flex; height: 100vh; height: 100dvh; overflow: hidden; }
+
+    /* Sidebar */
     .sidebar {
-      width: 240px;
+      width: var(--sidebar-w);
       background: var(--bg-2);
       border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
       flex-shrink: 0;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 200;
     }
-    .brand { display: flex; align-items: center; gap: 12px; padding: 20px; border-bottom: 1px solid var(--border); }
-    .brand-icon { font-size: 28px; }
+
+    /* Backdrop (solo mobile) */
+    .sidebar-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 199;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+      backdrop-filter: blur(2px);
+    }
+    .sidebar-backdrop.active { opacity: 1; visibility: visible; }
+
+    .brand { display: flex; align-items: center; gap: 12px; padding: 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .brand-icon { font-size: 28px; flex-shrink: 0; }
     .brand-name { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
     .brand-sub { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
 
-    .nav { flex: 1; padding: 12px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
+    .nav { flex: 1; padding: 12px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
     .nav-item {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 10px 14px;
+      padding: 12px 14px;
       border-radius: var(--radius-sm);
       color: var(--text-muted);
       font-size: 13px;
@@ -67,10 +93,12 @@
       transition: all 0.15s ease;
       text-align: left;
       width: 100%;
+      min-height: 44px;
+      white-space: nowrap;
     }
     .nav-item:hover { background: var(--surface-hover); color: var(--text); }
     .nav-item.active { background: var(--primary); color: white; }
-    .nav-item span:first-child { font-size: 16px; }
+    .nav-item .nav-icon { font-size: 16px; flex-shrink: 0; width: 20px; text-align: center; }
     .nav-badge {
       margin-left: auto;
       background: var(--danger);
@@ -90,7 +118,7 @@
     }
     .nav-item.active .nav-badge { background: rgba(255,255,255,0.25); }
 
-    .sidebar-footer { padding: 14px; border-top: 1px solid var(--border); }
+    .sidebar-footer { padding: 14px; border-top: 1px solid var(--border); flex-shrink: 0; }
     .user-block { display: flex; align-items: center; gap: 10px; }
     .avatar {
       width: 36px; height: 36px;
@@ -105,25 +133,38 @@
 
     /* ===== MAIN ===== */
     .main { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+
     .topbar {
-      height: 64px;
+      height: var(--topbar-h);
       background: var(--surface);
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 0 24px;
+      gap: 12px;
+      padding: 0 20px;
       flex-shrink: 0;
     }
-    .topbar h1 { font-size: 18px; font-weight: 600; }
-    .topbar-right { display: flex; align-items: center; gap: 16px; }
+    .hamburger {
+      display: none;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: 20px;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .hamburger:hover { background: var(--surface-hover); }
+    .topbar h1 { font-size: 18px; font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .topbar-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 
-    /* Botón simulacro */
     .sim-btn {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
+      gap: 6px;
+      padding: 8px 14px;
       font-size: 13px;
       font-weight: 700;
       border-radius: var(--radius-sm);
@@ -133,6 +174,7 @@
       overflow: hidden;
       transition: all 0.2s;
       letter-spacing: 0.3px;
+      white-space: nowrap;
     }
     .sim-btn::before {
       content: '';
@@ -161,55 +203,48 @@
       font-size: 11px;
       font-weight: 700;
       letter-spacing: 0.5px;
+      white-space: nowrap;
     }
-    .live-badge .dot {
-      width: 7px; height: 7px;
-      background: var(--success);
-      border-radius: 50%;
-      animation: pulse 1.5s infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(1.3); }
-    }
+    .live-badge .dot { width: 7px; height: 7px; background: var(--success); border-radius: 50%; animation: pulse 1.5s infinite; flex-shrink: 0; }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.3); } }
 
     #clock {
       font-family: 'SF Mono', Monaco, Consolas, monospace;
       font-size: 12px;
       color: var(--text-muted);
       letter-spacing: 0.5px;
+      white-space: nowrap;
     }
 
-    .content { flex: 1; overflow-y: auto; padding: 24px; }
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: max(20px, env(safe-area-inset-bottom));
+    }
     .page { display: none; }
     .page.active { display: block; animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
     /* ===== CARDS ===== */
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
-    }
-    .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .card-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
     .card-header h3 { font-size: 14px; font-weight: 600; }
-    .card-body { padding: 20px; }
+    .card-body { padding: 18px; }
 
     /* ===== KPIs ===== */
-    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 20px; }
     .kpi {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 18px;
+      padding: 16px;
       position: relative;
       overflow: hidden;
       transition: all 0.2s;
     }
-    .kpi.flash {
-      animation: kpiFlash 1.5s ease;
-    }
+    .kpi.flash { animation: kpiFlash 1.5s ease; }
     @keyframes kpiFlash {
       0%, 100% { border-color: var(--border); }
       20% { border-color: var(--danger); box-shadow: 0 0 30px rgba(220,38,38,0.4); }
@@ -226,19 +261,19 @@
     .kpi.danger::before { background: var(--danger); }
     .kpi.info::before { background: var(--info); }
     .kpi.purple::before { background: var(--purple); }
-    .kpi-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-bottom: 8px; }
-    .kpi-value { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+    .kpi-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-bottom: 6px; }
+    .kpi-value { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
     .kpi-sub { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
     .kpi-trend { font-size: 11px; font-weight: 600; margin-top: 6px; }
     .kpi-trend.up { color: var(--success); }
     .kpi-trend.down { color: var(--danger); }
 
-    .charts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px; }
+    .charts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 20px; }
     .chart-container { position: relative; height: 260px; }
     .chart-full { grid-column: 1 / -1; }
 
     /* ===== TABLES ===== */
-    .table-wrap { overflow-x: auto; }
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     thead { background: var(--bg-2); }
     th {
@@ -297,17 +332,17 @@
     .status-dot.down::before { background: var(--danger); box-shadow: 0 0 8px var(--danger); animation: pulse 1.5s infinite; }
 
     /* ===== SERVICES GRID ===== */
-    .services-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .services-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 14px; }
     .service-card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 18px;
+      padding: 16px;
       transition: all 0.2s ease;
       cursor: pointer;
     }
     .service-card:hover { border-color: var(--border-light); transform: translateY(-2px); box-shadow: var(--shadow); }
-    .service-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+    .service-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
     .service-name { font-size: 14px; font-weight: 600; }
     .service-region { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
     .service-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-top: 14px; border-top: 1px solid var(--border); }
@@ -315,9 +350,9 @@
     .service-metric-value { font-size: 15px; font-weight: 700; margin-top: 2px; }
 
     /* ===== FILTERS ===== */
-    .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
     .filter-btn {
-      padding: 6px 12px;
+      padding: 8px 14px;
       font-size: 12px;
       font-weight: 600;
       border-radius: var(--radius-sm);
@@ -325,6 +360,7 @@
       background: var(--surface);
       color: var(--text-muted);
       transition: all 0.15s;
+      min-height: 36px;
     }
     .filter-btn:hover { border-color: var(--border-light); color: var(--text); }
     .filter-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
@@ -332,7 +368,7 @@
     /* ===== MODAL ===== */
     .modal-overlay {
       position: fixed; inset: 0;
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.75);
       display: none;
       align-items: center;
       justify-content: center;
@@ -355,32 +391,25 @@
       transition: transform 0.2s ease;
     }
     .modal-overlay.open .modal { transform: scale(1); }
-    .modal-header {
-      padding: 18px 20px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-    }
+    .modal-header { padding: 16px 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-shrink: 0; }
     .modal-title { font-size: 16px; font-weight: 600; }
     .modal-close {
-      font-size: 20px;
+      font-size: 22px;
       color: var(--text-muted);
-      width: 32px; height: 32px;
+      width: 36px; height: 36px;
       border-radius: var(--radius-sm);
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
     }
     .modal-close:hover { background: var(--surface-hover); color: var(--text); }
-    .modal-body { padding: 20px; overflow-y: auto; }
-    .modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+    .modal-body { padding: 18px; overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1; }
+    .modal-footer { padding: 14px 18px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
 
-    /* ===== ESCENARIOS (modal simulacro) ===== */
+    /* ===== ESCENARIOS ===== */
     .scenarios-list { display: grid; gap: 10px; }
     .scenario {
       display: flex;
-      gap: 14px;
+      gap: 12px;
       padding: 14px;
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
@@ -390,14 +419,15 @@
       width: 100%;
       cursor: pointer;
     }
-    .scenario:hover { border-color: var(--danger); background: rgba(220,38,38,0.05); transform: translateX(2px); }
-    .scenario-icon { font-size: 28px; flex-shrink: 0; width: 40px; text-align: center; }
+    .scenario:hover { border-color: var(--danger); background: rgba(220,38,38,0.05); }
+    .scenario:active { transform: scale(0.99); }
+    .scenario-icon { font-size: 26px; flex-shrink: 0; width: 36px; text-align: center; }
     .scenario-body { flex: 1; min-width: 0; }
     .scenario-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
-    .scenario-desc { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+    .scenario-desc { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; line-height: 1.4; }
     .scenario-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
-    /* ===== LIVE PANEL (gestión en vivo) ===== */
+    /* ===== LIVE PANEL ===== */
     .live-panel {
       position: fixed;
       bottom: 24px;
@@ -412,15 +442,19 @@
       transform: translateX(calc(100% + 40px));
       transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      max-height: 80vh;
     }
     .live-panel.open { transform: translateX(0); }
     .live-panel-header {
-      padding: 16px 20px;
+      padding: 14px 18px;
       background: linear-gradient(135deg, rgba(220, 38, 38, 0.18), rgba(220, 38, 38, 0.06));
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: flex-start;
       gap: 12px;
+      flex-shrink: 0;
     }
     .live-panel-pulse {
       width: 12px; height: 12px;
@@ -431,34 +465,11 @@
       flex-shrink: 0;
       margin-top: 4px;
     }
-    .live-panel-title {
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--danger);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 4px;
-    }
-    .live-panel-incident-name {
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-    .live-panel-meta {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
-      margin-top: 6px;
-    }
-    .live-panel-body { padding: 16px 20px; }
-    .live-progress {
-      height: 4px;
-      background: var(--bg-2);
-      border-radius: 2px;
-      overflow: hidden;
-      margin-bottom: 16px;
-    }
+    .live-panel-title { font-size: 11px; font-weight: 700; color: var(--danger); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .live-panel-incident-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .live-panel-meta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+    .live-panel-body { padding: 14px 18px; overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1; }
+    .live-progress { height: 4px; background: var(--bg-2); border-radius: 2px; overflow: hidden; margin-bottom: 14px; flex-shrink: 0; }
     .live-progress-bar {
       height: 100%;
       background: linear-gradient(90deg, var(--danger), var(--warning), var(--success));
@@ -478,7 +489,7 @@
     .live-step.active { opacity: 1; }
     .live-step.done { opacity: 1; }
     .step-icon {
-      width: 24px; height: 24px;
+      width: 26px; height: 26px;
       border-radius: 50%;
       background: var(--bg-2);
       border: 2px solid var(--border);
@@ -507,7 +518,7 @@
     }
     .step-content { flex: 1; min-width: 0; }
     .step-label { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
-    .step-meta { font-size: 11px; color: var(--text-muted); }
+    .step-meta { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
     .live-step.active .step-meta { color: var(--warning); }
     .live-step.done .step-meta { color: var(--success); }
 
@@ -517,12 +528,12 @@
     .timeline-item { position: relative; padding-bottom: 16px; }
     .timeline-item::before { content: ''; position: absolute; left: -22px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--primary); border: 2px solid var(--surface); }
     .timeline-time { font-size: 11px; color: var(--text-dim); }
-    .timeline-text { font-size: 13px; margin-top: 2px; }
+    .timeline-text { font-size: 13px; margin-top: 2px; line-height: 1.4; }
 
     /* ===== RUNBOOK ===== */
     .runbook { margin-top: 16px; }
-    .runbook-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; font-size: 13px; cursor: pointer; }
-    .runbook-item input[type="checkbox"] { margin-top: 2px; width: 16px; height: 16px; accent-color: var(--success); cursor: pointer; }
+    .runbook-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; font-size: 13px; cursor: pointer; }
+    .runbook-item input[type="checkbox"] { margin-top: 2px; width: 18px; height: 18px; accent-color: var(--success); cursor: pointer; flex-shrink: 0; }
     .runbook-item.done span { text-decoration: line-through; color: var(--text-dim); }
 
     /* ===== TOAST ===== */
@@ -532,8 +543,9 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
-      z-index: 2000;
+      z-index: 4000;
       pointer-events: none;
+      max-width: calc(100vw - 40px);
     }
     .toast {
       background: var(--surface);
@@ -544,9 +556,10 @@
       font-size: 13px;
       box-shadow: var(--shadow);
       animation: slideIn 0.25s ease;
-      min-width: 260px;
+      min-width: 240px;
       max-width: 380px;
       pointer-events: auto;
+      line-height: 1.4;
     }
     .toast.success { border-left-color: var(--success); }
     .toast.error { border-left-color: var(--danger); }
@@ -554,42 +567,192 @@
     @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
     /* ===== MISC ===== */
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-    .grid-detail { display: grid; grid-template-columns: 160px 1fr; gap: 8px; font-size: 13px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .grid-detail { display: grid; grid-template-columns: 140px 1fr; gap: 8px; font-size: 13px; }
     .grid-detail dt { color: var(--text-muted); }
-    .grid-detail dd { font-weight: 600; }
+    .grid-detail dd { font-weight: 600; word-break: break-word; }
     .empty { text-align: center; padding: 40px 20px; color: var(--text-muted); }
     .empty-icon { font-size: 48px; margin-bottom: 8px; opacity: 0.5; }
     .ml-auto { margin-left: auto; }
-    code { background: var(--bg-2); padding: 2px 6px; border-radius: 4px; font-size: 11px; color: var(--info); }
+    code { background: var(--bg-2); padding: 2px 6px; border-radius: 4px; font-size: 11px; color: var(--info); word-break: break-all; }
 
     /* ===== BUTTONS ===== */
-    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; font-size: 13px; font-weight: 600; border-radius: var(--radius-sm); transition: all 0.15s; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 16px; font-size: 13px; font-weight: 600; border-radius: var(--radius-sm); transition: all 0.15s; min-height: 40px; }
     .btn-primary { background: var(--primary); color: white; }
     .btn-primary:hover { background: var(--primary-hover); }
     .btn-success { background: var(--success); color: white; }
     .btn-success:hover { filter: brightness(0.9); }
     .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
     .btn-ghost:hover { background: var(--surface-hover); }
-    .btn-sm { padding: 5px 10px; font-size: 12px; }
+    .btn-sm { padding: 6px 10px; font-size: 12px; min-height: 34px; }
 
     /* ===== RESPONSIVE ===== */
-    @media (max-width: 900px) {
-      .sidebar { width: 60px; }
-      .brand-name, .brand-sub, .nav-item span:not(:first-child), .nav-badge, .user-info { display: none; }
-      .nav-item { justify-content: center; padding: 12px; }
-      .charts-grid { grid-template-columns: 1fr; }
-      .grid-2 { grid-template-columns: 1fr; }
-      .content { padding: 16px; }
-      .topbar-right { gap: 8px; }
-      .sim-btn span:not(.sim-icon) { display: none; }
-      .live-panel { width: calc(100vw - 32px); right: 16px; bottom: 16px; }
+
+    /* Tablet — sidebar colapsado a íconos */
+    @media (max-width: 1024px) {
+      :root { --sidebar-w: 68px; }
+      .brand { padding: 16px 8px; justify-content: center; }
+      .brand-name, .brand-sub { display: none; }
+      .nav { padding: 8px; }
+      .nav-item { justify-content: center; padding: 12px 8px; gap: 0; }
+      .nav-item .nav-label { display: none; }
+      .nav-badge {
+        position: absolute;
+        top: 4px; right: 4px;
+        min-width: 16px;
+        padding: 1px 4px;
+        font-size: 9px;
+      }
+      .nav-item { position: relative; }
+      .sidebar-footer { padding: 10px 8px; }
+      .user-block { justify-content: center; }
+      .user-info { display: none; }
+    }
+
+    /* Mobile — sidebar como drawer + topbar 2 líneas */
+    @media (max-width: 768px) {
+      :root { --sidebar-w: 260px; --topbar-h: auto; }
+
+      .sidebar {
+        position: fixed;
+        top: 0; left: 0; bottom: 0;
+        height: 100vh;
+        height: 100dvh;
+        transform: translateX(-100%);
+        box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+        width: 260px;
+      }
+      .sidebar.open { transform: translateX(0); }
+      .brand { padding: 20px; justify-content: flex-start; }
+      .brand-name, .brand-sub { display: block; }
+      .nav { padding: 12px; }
+      .nav-item { justify-content: flex-start; padding: 12px 14px; gap: 12px; }
+      .nav-item .nav-label { display: inline; }
+      .nav-badge { position: static; min-width: 20px; padding: 2px 7px; font-size: 10px; }
+      .sidebar-footer { padding: 14px; }
+      .user-block { justify-content: flex-start; }
+      .user-info { display: block; }
+
+      .hamburger { display: flex; }
+
+      .topbar {
+        padding: 10px 12px;
+        min-height: 56px;
+        gap: 8px;
+        flex-wrap: nowrap;
+      }
+      .topbar h1 { font-size: 16px; }
+      .topbar-right { gap: 6px; }
+      #clock { display: none; }
+      .live-badge { padding: 3px 8px; font-size: 10px; letter-spacing: 0.3px; }
+      .live-badge .dot { width: 6px; height: 6px; }
+      .sim-btn { padding: 8px 12px; font-size: 12px; gap: 4px; }
+      .sim-btn .sim-label { display: none; }
+      .sim-btn .sim-icon { font-size: 16px; }
+
+      .content { padding: 12px; }
+
+      /* KPIs 2 columnas */
+      .kpis { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+      .kpi { padding: 12px; }
+      .kpi-value { font-size: 22px; }
+      .kpi-label { font-size: 10px; margin-bottom: 4px; }
+      .kpi-sub { font-size: 11px; }
+      .kpi-trend { font-size: 10px; }
+
+      /* Charts 1 columna */
+      .charts-grid { grid-template-columns: 1fr; gap: 12px; margin-bottom: 14px; }
+      .chart-container { height: 220px; }
+      .chart-full .chart-container { height: 240px; }
+      .grid-2 { grid-template-columns: 1fr; gap: 12px; }
+
+      /* Cards */
+      .card-header { padding: 12px 14px; }
+      .card-body { padding: 14px; }
+      .card-header h3 { font-size: 13px; }
+
+      /* Tablas — scroll horizontal suave */
+      .table-wrap { margin: 0 -14px; padding: 0 14px; }
+      th { padding: 8px 12px; font-size: 10px; }
+      td { padding: 10px 12px; font-size: 12px; }
+
+      /* Modales full-screen bottom-sheet */
+      .modal-overlay { padding: 0; align-items: flex-end; }
+      .modal {
+        max-width: 100%;
+        max-height: 92vh;
+        max-height: 92dvh;
+        border-radius: var(--radius) var(--radius) 0 0;
+        transform: translateY(100%);
+      }
+      .modal-overlay.open .modal { transform: translateY(0); }
+      .modal-body { padding: 16px; }
+      .modal-footer { padding: 12px 16px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+      .modal-footer .btn { flex: 1; }
+      .grid-detail { grid-template-columns: 110px 1fr; font-size: 12px; }
+
+      /* Live panel bottom-sheet full-width */
+      .live-panel {
+        top: auto;
+        bottom: 0;
+        right: 0;
+        left: 0;
+        width: 100%;
+        max-width: 100%;
+        max-height: 78vh;
+        max-height: 78dvh;
+        border-radius: var(--radius) var(--radius) 0 0;
+        transform: translateY(100%);
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+      .live-panel.open { transform: translateY(0); }
+
+      /* Toasts full-width desde arriba */
+      .toast-container { top: 12px; left: 12px; right: 12px; max-width: none; }
+      .toast { min-width: 0; max-width: none; width: 100%; font-size: 12px; padding: 10px 14px; }
+
+      /* Botones */
+      .btn { min-height: 44px; }
+      .filter-btn { min-height: 38px; padding: 8px 14px; }
+
+      /* Evitar zoom en iOS */
+      input, select, textarea { font-size: 16px !important; }
+
+      /* Touch feedback */
+      .nav-item:active { background: var(--surface-hover); }
+      tbody tr:active { background: var(--surface-hover); }
+    }
+
+    /* Small phone (≤480px) */
+    @media (max-width: 480px) {
+      .kpis { grid-template-columns: 1fr; }
+      .kpi-value { font-size: 24px; }
+      .topbar h1 { font-size: 15px; }
+      .chart-container { height: 200px; }
+      .chart-full .chart-container { height: 220px; }
+      .services-grid { grid-template-columns: 1fr; }
+      .scenario { padding: 12px; }
+      .scenario-icon { font-size: 22px; width: 32px; }
+      .scenario-name { font-size: 13px; }
+      .scenario-desc { font-size: 11px; }
+      .grid-detail { grid-template-columns: 1fr; gap: 4px; }
+      .grid-detail dt { margin-top: 8px; }
+      .grid-detail dd { margin-bottom: 4px; }
+    }
+
+    /* Safe-area (notch iPhone) */
+    @supports (padding: max(0px)) {
+      .topbar { padding-top: max(10px, env(safe-area-inset-top)); }
+      .sidebar { padding-top: env(safe-area-inset-top); }
+      .toast-container { top: max(20px, env(safe-area-inset-top)); }
     }
   </style>
 </head>
 <body>
   <div class="app">
-    <aside class="sidebar">
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <aside class="sidebar" id="sidebar">
       <div class="brand">
         <span class="brand-icon">🛡</span>
         <div>
@@ -597,12 +760,12 @@
           <div class="brand-sub">Demo</div>
         </div>
       </div>
-      <nav class="nav" id="nav">
-        <button class="nav-item active" data-page="dashboard"><span>📊</span> Dashboard</button>
-        <button class="nav-item" data-page="servicios"><span>🖥</span> Servicios</button>
-        <button class="nav-item" data-page="alertas"><span>🚨</span> Alertas <span class="nav-badge" id="nav-alert-count">0</span></button>
-        <button class="nav-item" data-page="incidentes"><span>⚠</span> Incidentes</button>
-        <button class="nav-item" data-page="equipo"><span>👥</span> Equipo</button>
+      <nav class="nav">
+        <button class="nav-item active" data-page="dashboard"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></button>
+        <button class="nav-item" data-page="servicios"><span class="nav-icon">🖥</span><span class="nav-label">Servicios</span></button>
+        <button class="nav-item" data-page="alertas"><span class="nav-icon">🚨</span><span class="nav-label">Alertas</span><span class="nav-badge" id="nav-alert-count">0</span></button>
+        <button class="nav-item" data-page="incidentes"><span class="nav-icon">⚠</span><span class="nav-label">Incidentes</span></button>
+        <button class="nav-item" data-page="equipo"><span class="nav-icon">👥</span><span class="nav-label">Equipo</span></button>
       </nav>
       <div class="sidebar-footer">
         <div class="user-block">
@@ -617,11 +780,12 @@
 
     <main class="main">
       <header class="topbar">
+        <button class="hamburger" id="hamburger" aria-label="Menú">☰</button>
         <h1 id="page-title">Dashboard</h1>
         <div class="topbar-right">
           <button class="sim-btn" id="sim-btn" title="Simular incidente en vivo">
             <span class="sim-icon">⚡</span>
-            <span>Simular Incidencia</span>
+            <span class="sim-label">Simular Incidencia</span>
           </button>
           <span class="live-badge"><span class="dot"></span> EN VIVO</span>
           <span id="clock">--:--:--</span>
@@ -640,12 +804,11 @@
   <div class="modal-overlay" id="modal-overlay"></div>
   <div class="toast-container" id="toast-container"></div>
 
-  <!-- Panel de gestión en vivo -->
   <div class="live-panel" id="live-panel">
     <div class="live-panel-header">
       <span class="live-panel-pulse"></span>
       <div style="flex:1; min-width:0;">
-        <div class="live-panel-title">🔴 Gestión de incidente en vivo</div>
+        <div class="live-panel-title">🔴 Gestión en vivo</div>
         <div class="live-panel-incident-name" id="lp-name">—</div>
         <div class="live-panel-meta" id="lp-meta"></div>
       </div>
@@ -660,18 +823,14 @@
   // ==================== ESCENARIOS DE SIMULACIÓN ====================
   const SCENARIOS = [
     {
-      id: 'db-down',
-      icon: '💾',
+      id: 'db-down', icon: '💾',
       name: 'Caída de base de datos primaria',
       desc: 'El nodo primary deja de responder. Réplicas sin binlog.',
-      severity: 'critical',
-      service: 'Database Primary',
-      zone: 'us-east-1',
+      severity: 'critical', service: 'Database Primary', zone: 'us-east-1',
       title: 'Database Primary no responde',
       message: 'Health check falla 3 chequeos consecutivos. Réplicas sin binlog desde hace 4 min.',
       impact: 'Todas las aplicaciones dependientes afectadas',
-      assignedTo: 'Luis Pardo',
-      assignRole: 'DBA',
+      assignedTo: 'Luis Pardo', assignRole: 'DBA',
       notify: ['PagerDuty', 'Slack #incidents', 'SMS'],
       runbook: [
         'Verificar estado del nodo primario',
@@ -682,18 +841,14 @@
       ]
     },
     {
-      id: 'latency-spike',
-      icon: '⚡',
+      id: 'latency-spike', icon: '⚡',
       name: 'Pico de latencia en API',
       desc: 'p99 se dispara a 8 segundos. Sin cambios de tráfico.',
-      severity: 'high',
-      service: 'API Gateway',
-      zone: 'eu-west-1',
+      severity: 'high', service: 'API Gateway', zone: 'eu-west-1',
       title: 'Latencia p99 fuera de rango',
       message: 'p99 = 8.4s (umbral: 1s). Tráfico normal. Se descarta sobrecarga.',
       impact: '12,000 usuarios activos afectados',
-      assignedTo: 'Carlos Gómez',
-      assignRole: 'Backend Engineer',
+      assignedTo: 'Carlos Gómez', assignRole: 'Backend Engineer',
       notify: ['PagerDuty', 'Slack #api-alerts'],
       runbook: [
         'Revisar métricas de latencia por endpoint',
@@ -704,18 +859,14 @@
       ]
     },
     {
-      id: 'ddos',
-      icon: '🛡',
+      id: 'ddos', icon: '🛡',
       name: 'Ataque DDoS volumétrico',
       desc: '1.2M req/s desde 8,400 IPs distintas. Patrón de ataque.',
-      severity: 'critical',
-      service: 'API Gateway',
-      zone: 'us-east-1',
+      severity: 'critical', service: 'API Gateway', zone: 'us-east-1',
       title: 'Ataque DDoS volumétrico detectado',
       message: '1.2M req/s desde 8,400 IPs. Geolocalización dispersa. Mitigación automática activada.',
       impact: 'Clientes legítimos con timeouts en algunas regiones',
-      assignedTo: 'Diego Herrera',
-      assignRole: 'Security Engineer',
+      assignedTo: 'Diego Herrera', assignRole: 'Security Engineer',
       notify: ['PagerDuty', 'Slack #security', 'CloudFlare API'],
       runbook: [
         'Verificar mitigación en CDN/WAF',
@@ -726,18 +877,14 @@
       ]
     },
     {
-      id: 'ssl-expired',
-      icon: '🔒',
+      id: 'ssl-expired', icon: '🔒',
       name: 'Certificado SSL expirado',
       desc: 'Certificado wildcard expiró hace 5 minutos. HTTPS falla.',
-      severity: 'high',
-      service: 'CDN Edge',
-      zone: 'global',
+      severity: 'high', service: 'CDN Edge', zone: 'global',
       title: 'Certificado SSL expirado en CDN',
       message: 'Certificado wildcard *.example.com expiró. Todas las conexiones HTTPS rechazadas.',
       impact: '100% de usuarios recibiendo errores de certificado',
-      assignedTo: 'Ana Duarte',
-      assignRole: 'Platform Engineer',
+      assignedTo: 'Ana Duarte', assignRole: 'Platform Engineer',
       notify: ['PagerDuty', 'Slack #platform'],
       runbook: [
         'Verificar estado del certificado en todos los POPs',
@@ -748,18 +895,14 @@
       ]
     },
     {
-      id: 'payment-failure',
-      icon: '💳',
+      id: 'payment-failure', icon: '💳',
       name: 'Fallas en pasarela de pago',
       desc: '35% de transacciones rechazadas. Proveedor upstream caído.',
-      severity: 'critical',
-      service: 'Payment Processor',
-      zone: 'us-west-2',
+      severity: 'critical', service: 'Payment Processor', zone: 'us-west-2',
       title: 'Tasa de rechazo elevada en pagos',
       message: '35% de transacciones rechazadas (baseline: 2%). Proveedor upstream sin respuesta.',
       impact: 'Pérdida estimada de $12,000 USD/minuto',
-      assignedTo: 'María Rodríguez',
-      assignRole: 'SRE Lead',
+      assignedTo: 'María Rodríguez', assignRole: 'SRE Lead',
       notify: ['PagerDuty', 'Slack #payments', 'CFO escalation'],
       runbook: [
         'Verificar estado del proveedor upstream',
@@ -771,7 +914,7 @@
     }
   ];
 
-  // ==================== DATOS MOCK ====================
+  // ==================== DATOS ====================
   const now = Date.now();
   const min = 60 * 1000;
 
@@ -798,8 +941,7 @@
     ],
     incidents: [
       {
-        id: 'INC-1847',
-        title: 'Cache cluster saturado',
+        id: 'INC-1847', title: 'Cache cluster saturado',
         description: 'Tasa de error elevada en cache cluster, afectando latencia de API Gateway.',
         severity: 'critical', status: 'investigating', service: 'Cache Cluster', zone: 'us-east-1',
         assignedTo: 'Ana Duarte', createdAt: now - 8 * min,
@@ -817,8 +959,7 @@
         ]
       },
       {
-        id: 'INC-1845',
-        title: 'Report Worker reiniciado',
+        id: 'INC-1845', title: 'Report Worker reiniciado',
         description: 'El servicio de generación de reportes se cayó y fue reiniciado.',
         severity: 'high', status: 'resolved', service: 'Report Worker', zone: 'us-east-1',
         assignedTo: 'Carlos Gómez', createdAt: now - 40 * min, resolvedAt: now - 25 * min,
@@ -846,7 +987,6 @@
     ]
   };
 
-  // ==================== STATE ====================
   const STATE = {
     page: 'dashboard',
     alertFilter: 'active',
@@ -858,23 +998,16 @@
 
   // ==================== HELPERS ====================
   function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
-      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-    }[c]));
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
-
   function timeAgo(ts) {
-    const diff = Math.floor((Date.now() - ts) / 1000);
-    if (diff < 60) return 'hace ' + diff + 's';
-    if (diff < 3600) return 'hace ' + Math.floor(diff / 60) + ' min';
-    if (diff < 86400) return 'hace ' + Math.floor(diff / 3600) + 'h';
-    return 'hace ' + Math.floor(diff / 86400) + 'd';
+    const d = Math.floor((Date.now() - ts) / 1000);
+    if (d < 60) return 'hace ' + d + 's';
+    if (d < 3600) return 'hace ' + Math.floor(d / 60) + ' min';
+    if (d < 86400) return 'hace ' + Math.floor(d / 3600) + 'h';
+    return 'hace ' + Math.floor(d / 86400) + 'd';
   }
-
-  function fmtTime(ts) {
-    return new Date(ts).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
-  }
-
+  function fmtTime(ts) { return new Date(ts).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }); }
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
   function toast(msg, type = 'info', duration = 3500) {
@@ -892,30 +1025,32 @@
   }
 
   function severityBadge(s) {
-    const labels = { critical: 'Crítica', high: 'Alta', medium: 'Media', low: 'Baja' };
-    return '<span class="badge badge-' + s + '">' + labels[s] + '</span>';
+    const l = { critical: 'Crítica', high: 'Alta', medium: 'Media', low: 'Baja' };
+    return '<span class="badge badge-' + s + '">' + l[s] + '</span>';
   }
-
   function statusBadge(s) {
-    const map = {
-      'active': ['badge-danger', 'Activa'],
-      'acknowledged': ['badge-warning', 'Reconocida'],
-      'resolved': ['badge-success', 'Resuelta'],
-      'open': ['badge-danger', 'Abierto'],
-      'investigating': ['badge-warning', 'Investigando'],
-      'mitigated': ['badge-info', 'Mitigado']
-    };
-    const [cls, label] = map[s] || ['badge-low', s];
-    return '<span class="badge ' + cls + '">' + label + '</span>';
+    const m = { 'active': ['badge-danger','Activa'], 'acknowledged': ['badge-warning','Reconocida'], 'resolved': ['badge-success','Resuelta'] };
+    const [cls, lbl] = m[s] || ['badge-low', s];
+    return '<span class="badge ' + cls + '">' + lbl + '</span>';
   }
-
   function serviceStatusDot(s) {
-    const labels = { operational: 'Operacional', degraded: 'Degradado', down: 'Caído' };
-    return '<span class="status-dot ' + (s === 'operational' ? '' : s) + '">' + labels[s] + '</span>';
+    const l = { operational: 'Operacional', degraded: 'Degradado', down: 'Caído' };
+    return '<span class="status-dot ' + (s === 'operational' ? '' : s) + '">' + l[s] + '</span>';
   }
-
   function getActiveAlertCount() { return DATA.alerts.filter(a => a.status !== 'resolved').length; }
   function getOpenIncidentCount() { return DATA.incidents.filter(i => i.status !== 'resolved').length; }
+
+  // ==================== SIDEBAR DRAWER (mobile) ====================
+  function openSidebar() {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('sidebar-backdrop').classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-backdrop').classList.remove('active');
+    document.body.style.overflow = '';
+  }
 
   // ==================== RENDER: DASHBOARD ====================
   function renderDashboard() {
@@ -931,13 +1066,13 @@
           <div class="kpi-label">Uptime Global</div>
           <div class="kpi-value">${avgUptime}%</div>
           <div class="kpi-sub">Promedio 30 días</div>
-          <div class="kpi-trend up">▲ 0.02% vs mes anterior</div>
+          <div class="kpi-trend up">▲ 0.02%</div>
         </div>
         <div class="kpi ${activeAlerts > 2 ? 'danger' : 'success'}" id="kpi-alertas">
           <div class="kpi-label">Alertas Activas</div>
           <div class="kpi-value">${activeAlerts}</div>
           <div class="kpi-sub">${DATA.alerts.filter(a => a.severity === 'critical' && a.status !== 'resolved').length} críticas</div>
-          <div class="kpi-trend ${activeAlerts > 2 ? 'down' : 'up'}">${activeAlerts > 2 ? '▲ requiere atención' : '▼ bajo control'}</div>
+          <div class="kpi-trend ${activeAlerts > 2 ? 'down' : 'up'}">${activeAlerts > 2 ? '▲ atención' : '▼ bajo control'}</div>
         </div>
         <div class="kpi ${openIncidents > 1 ? 'warning' : 'success'}" id="kpi-incidentes">
           <div class="kpi-label">Incidentes Abiertos</div>
@@ -946,7 +1081,7 @@
           <div class="kpi-trend up">MTTR 18 min</div>
         </div>
         <div class="kpi ${downServices > 0 ? 'danger' : degradedServices > 0 ? 'warning' : 'success'}">
-          <div class="kpi-label">Estado Servicios</div>
+          <div class="kpi-label">Servicios OK</div>
           <div class="kpi-value">${DATA.services.length - downServices - degradedServices}/${DATA.services.length}</div>
           <div class="kpi-sub">${downServices} caídos · ${degradedServices} degradados</div>
           <div class="kpi-trend ${downServices > 0 ? 'down' : 'up'}">${downServices > 0 ? '⚠ revisar' : '✓ operacional'}</div>
@@ -968,14 +1103,13 @@
       <div class="charts-grid">
         <div class="card chart-full">
           <div class="card-header">
-            <h3>Uptime por servicio (últimos 7 días)</h3>
+            <h3>Uptime por servicio (7 días)</h3>
             <span class="badge badge-success">● En vivo</span>
           </div>
           <div class="card-body">
             <div class="chart-container" style="height: 280px;"><canvas id="chart-uptime"></canvas></div>
           </div>
         </div>
-
         <div class="card">
           <div class="card-header"><h3>Alertas por severidad</h3></div>
           <div class="card-body"><div class="chart-container"><canvas id="chart-severity"></canvas></div></div>
@@ -998,13 +1132,13 @@
         <div class="card">
           <div class="card-header">
             <h3>Alertas recientes</h3>
-            <a href="#" onclick="navigate('alertas'); return false;" class="btn btn-ghost btn-sm">Ver todas →</a>
+            <a href="#" onclick="navigate('alertas'); return false;" class="btn btn-ghost btn-sm">Ver →</a>
           </div>
           <div class="card-body" style="padding: 0;">
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Severidad</th><th>Servicio</th><th>Título</th><th>Hace</th></tr></thead>
-                <tbody id="recent-alerts-tbody">
+                <thead><tr><th>Sev.</th><th>Servicio</th><th>Título</th><th>Hace</th></tr></thead>
+                <tbody>
                   ${DATA.alerts.filter(a => a.status !== 'resolved').slice(0, 5).map(a => `
                     <tr onclick="showAlertDetail('${esc(a.id)}')">
                       <td>${severityBadge(a.severity)}</td>
@@ -1021,7 +1155,7 @@
         <div class="card">
           <div class="card-header">
             <h3>Servicios con problemas</h3>
-            <a href="#" onclick="navigate('servicios'); return false;" class="btn btn-ghost btn-sm">Ver todos →</a>
+            <a href="#" onclick="navigate('servicios'); return false;" class="btn btn-ghost btn-sm">Ver →</a>
           </div>
           <div class="card-body" style="padding: 0;">
             <div class="table-wrap">
@@ -1049,10 +1183,7 @@
     initDashboardCharts();
   }
 
-  // ==================== CHARTS ====================
-  function destroyChart(key) {
-    if (STATE.charts[key]) { STATE.charts[key].destroy(); delete STATE.charts[key]; }
-  }
+  function destroyChart(k) { if (STATE.charts[k]) { STATE.charts[k].destroy(); delete STATE.charts[k]; } }
 
   function initDashboardCharts() {
     Chart.defaults.color = '#94a3b8';
@@ -1061,72 +1192,72 @@
     Chart.defaults.borderColor = '#1e293b';
 
     destroyChart('uptime');
-    const uptimeCtx = document.getElementById('chart-uptime');
-    if (uptimeCtx) {
-      const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-      STATE.charts.uptime = new Chart(uptimeCtx, {
+    const up = document.getElementById('chart-uptime');
+    if (up) {
+      const days = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+      STATE.charts.uptime = new Chart(up, {
         type: 'line',
         data: { labels: days, datasets: [
-          { label: 'API Gateway', data: [99.99, 99.98, 99.97, 99.99, 100, 99.98, 99.99], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', tension: 0.3, fill: true, borderWidth: 2, pointRadius: 3 },
-          { label: 'Payment Processor', data: [99.9, 99.85, 99.92, 99.78, 99.7, 99.82, 99.75], borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', tension: 0.3, fill: true, borderWidth: 2, pointRadius: 3 },
-          { label: 'Database Primary', data: [100, 100, 99.99, 100, 100, 100, 99.99], borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', tension: 0.3, fill: true, borderWidth: 2, pointRadius: 3 },
-          { label: 'Cache Cluster', data: [99.95, 99.88, 99.92, 99.79, 99.71, 99.83, 99.76], borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', tension: 0.3, fill: true, borderWidth: 2, pointRadius: 3 }
+          { label: 'API Gateway', data: [99.99,99.98,99.97,99.99,100,99.98,99.99], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', tension: 0.3, fill: true, borderWidth: 2, pointRadius: 2 },
+          { label: 'Payment', data: [99.9,99.85,99.92,99.78,99.7,99.82,99.75], borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', tension: 0.3, fill: true, borderWidth: 2, pointRadius: 2 },
+          { label: 'DB Primary', data: [100,100,99.99,100,100,100,99.99], borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', tension: 0.3, fill: true, borderWidth: 2, pointRadius: 2 },
+          { label: 'Cache', data: [99.95,99.88,99.92,99.79,99.71,99.83,99.76], borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', tension: 0.3, fill: true, borderWidth: 2, pointRadius: 2 }
         ]},
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 16 } } },
-          scales: { y: { min: 99.5, max: 100.05, ticks: { callback: v => v.toFixed(1) + '%' }, grid: { color: '#1e293b' } }, x: { grid: { display: false } } }
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10, font: { size: 10 } } } },
+          scales: { y: { min: 99.5, max: 100.05, ticks: { callback: v => v.toFixed(1)+'%', font: { size: 10 } }, grid: { color: '#1e293b' } }, x: { grid: { display: false }, ticks: { font: { size: 10 } } } }
         }
       });
     }
 
     destroyChart('severity');
-    const sevCtx = document.getElementById('chart-severity');
-    if (sevCtx) {
-      const counts = { critical: 0, high: 0, medium: 0, low: 0 };
-      DATA.alerts.filter(a => a.status !== 'resolved').forEach(a => { if (counts[a.severity] !== undefined) counts[a.severity]++; });
-      STATE.charts.severity = new Chart(sevCtx, {
+    const sev = document.getElementById('chart-severity');
+    if (sev) {
+      const c = { critical: 0, high: 0, medium: 0, low: 0 };
+      DATA.alerts.filter(a => a.status !== 'resolved').forEach(a => { if (c[a.severity] !== undefined) c[a.severity]++; });
+      STATE.charts.severity = new Chart(sev, {
         type: 'doughnut',
-        data: { labels: ['Crítica', 'Alta', 'Media', 'Baja'], datasets: [{ data: [counts.critical, counts.high, counts.medium, counts.low], backgroundColor: ['#dc2626', '#f59e0b', '#3b82f6', '#64748b'], borderWidth: 0, spacing: 2 }] },
-        options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 14 } } } }
+        data: { labels: ['Crítica','Alta','Media','Baja'], datasets: [{ data: [c.critical,c.high,c.medium,c.low], backgroundColor: ['#dc2626','#f59e0b','#3b82f6','#64748b'], borderWidth: 0, spacing: 2 }] },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10, font: { size: 10 } } } } }
       });
     }
 
     destroyChart('response');
-    const respCtx = document.getElementById('chart-response');
-    if (respCtx) {
-      const svcs = DATA.services.filter(s => s.p95 > 0).sort((a, b) => b.p95 - a.p95).slice(0, 6);
-      STATE.charts.response = new Chart(respCtx, {
+    const resp = document.getElementById('chart-response');
+    if (resp) {
+      const svcs = DATA.services.filter(s => s.p95 > 0).sort((a,b) => b.p95 - a.p95).slice(0, 6);
+      STATE.charts.response = new Chart(resp, {
         type: 'bar',
-        data: { labels: svcs.map(s => s.name), datasets: [{ label: 'p95 (ms)', data: svcs.map(s => s.p95), backgroundColor: svcs.map(s => s.p95 > 1000 ? '#dc2626' : s.p95 > 200 ? '#f59e0b' : '#10b981'), borderRadius: 4 }] },
-        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, grid: { color: '#1e293b' }, ticks: { callback: v => v + 'ms' } }, y: { grid: { display: false } } } }
+        data: { labels: svcs.map(s => s.name), datasets: [{ label: 'p95', data: svcs.map(s => s.p95), backgroundColor: svcs.map(s => s.p95 > 1000 ? '#dc2626' : s.p95 > 200 ? '#f59e0b' : '#10b981'), borderRadius: 4 }] },
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, grid: { color: '#1e293b' }, ticks: { callback: v => v + 'ms', font: { size: 10 } } }, y: { grid: { display: false }, ticks: { font: { size: 10 } } } } }
       });
     }
 
     destroyChart('incidents');
-    const incCtx = document.getElementById('chart-incidents');
-    if (incCtx) {
-      STATE.charts.incidents = new Chart(incCtx, {
+    const inc = document.getElementById('chart-incidents');
+    if (inc) {
+      STATE.charts.incidents = new Chart(inc, {
         type: 'bar',
-        data: { labels: ['May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct'], datasets: [
-          { label: 'Críticos', data: [3, 2, 4, 1, 2, 3], backgroundColor: '#dc2626', borderRadius: 4 },
-          { label: 'Altos', data: [5, 4, 6, 3, 4, 5], backgroundColor: '#f59e0b', borderRadius: 4 },
-          { label: 'Medios', data: [8, 7, 9, 5, 6, 7], backgroundColor: '#3b82f6', borderRadius: 4 }
+        data: { labels: ['May','Jun','Jul','Ago','Sep','Oct'], datasets: [
+          { label: 'Críticos', data: [3,2,4,1,2,3], backgroundColor: '#dc2626', borderRadius: 4 },
+          { label: 'Altos', data: [5,4,6,3,4,5], backgroundColor: '#f59e0b', borderRadius: 4 },
+          { label: 'Medios', data: [8,7,9,5,6,7], backgroundColor: '#3b82f6', borderRadius: 4 }
         ]},
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 14 } } }, scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, beginAtZero: true, grid: { color: '#1e293b' }, ticks: { precision: 0 } } } }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10, font: { size: 10 } } } }, scales: { x: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } }, y: { stacked: true, beginAtZero: true, grid: { color: '#1e293b' }, ticks: { precision: 0, font: { size: 10 } } } } }
       });
     }
 
     destroyChart('sla');
-    const slaCtx = document.getElementById('chart-sla');
-    if (slaCtx) {
-      STATE.charts.sla = new Chart(slaCtx, {
+    const sla = document.getElementById('chart-sla');
+    if (sla) {
+      STATE.charts.sla = new Chart(sla, {
         type: 'line',
-        data: { labels: ['May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct'], datasets: [
-          { label: 'SLA real (%)', data: [98.9, 99.2, 98.7, 99.4, 99.1, 98.7], borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', tension: 0.3, fill: true, borderWidth: 2, pointRadius: 4 },
-          { label: 'Objetivo (99.5%)', data: [99.5, 99.5, 99.5, 99.5, 99.5, 99.5], borderColor: '#64748b', borderDash: [5, 5], borderWidth: 1, pointRadius: 0, fill: false }
+        data: { labels: ['May','Jun','Jul','Ago','Sep','Oct'], datasets: [
+          { label: 'SLA real', data: [98.9,99.2,98.7,99.4,99.1,98.7], borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', tension: 0.3, fill: true, borderWidth: 2, pointRadius: 3 },
+          { label: 'Objetivo', data: [99.5,99.5,99.5,99.5,99.5,99.5], borderColor: '#64748b', borderDash: [5,5], borderWidth: 1, pointRadius: 0, fill: false }
         ]},
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 14 } } }, scales: { y: { min: 98, max: 100, grid: { color: '#1e293b' }, ticks: { callback: v => v + '%' } }, x: { grid: { display: false } } } }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10, font: { size: 10 } } } }, scales: { y: { min: 98, max: 100, grid: { color: '#1e293b' }, ticks: { callback: v => v + '%', font: { size: 10 } } }, x: { grid: { display: false }, ticks: { font: { size: 10 } } } } }
       });
     }
   }
@@ -1138,19 +1269,19 @@
         ${DATA.services.map(s => `
           <div class="service-card" onclick="showServiceDetail('${esc(s.id)}')">
             <div class="service-header">
-              <div>
+              <div style="min-width:0;">
                 <div class="service-name">${esc(s.name)}</div>
                 <div class="service-region">${esc(s.region)}</div>
               </div>
               <span class="badge ${s.status === 'operational' ? 'badge-success' : s.status === 'degraded' ? 'badge-warning' : 'badge-danger'}">
-                ${s.status === 'operational' ? 'OK' : s.status === 'degraded' ? 'DEGRADADO' : 'CAÍDO'}
+                ${s.status === 'operational' ? 'OK' : s.status === 'degraded' ? 'DEG' : 'CAÍDO'}
               </span>
             </div>
             <div class="service-metrics">
               <div><div class="service-metric-label">Uptime</div><div class="service-metric-value">${s.uptime}%</div></div>
               <div><div class="service-metric-label">p95</div><div class="service-metric-value">${s.p95}ms</div></div>
               <div><div class="service-metric-label">Req/s</div><div class="service-metric-value">${s.requests.toLocaleString()}</div></div>
-              <div><div class="service-metric-label">Región</div><div class="service-metric-value" style="font-size: 12px;">${esc(s.region)}</div></div>
+              <div><div class="service-metric-label">Región</div><div class="service-metric-value" style="font-size:11px;">${esc(s.region)}</div></div>
             </div>
           </div>
         `).join('')}
@@ -1178,13 +1309,13 @@
       </div>
       <div class="card">
         <div class="card-header">
-          <h3>Listado de Alertas</h3>
-          <span class="badge badge-info">${filtered.length} ${filtered.length === 1 ? 'resultado' : 'resultados'}</span>
+          <h3>Alertas</h3>
+          <span class="badge badge-info">${filtered.length} resultados</span>
         </div>
         <div class="card-body" style="padding: 0;">
-          ${filtered.length === 0 ? '<div class="empty"><div class="empty-icon">✅</div><div>No hay alertas en esta categoría</div></div>' : `
+          ${filtered.length === 0 ? '<div class="empty"><div class="empty-icon">✅</div><div>Sin alertas en esta categoría</div></div>' : `
             <div class="table-wrap"><table>
-              <thead><tr><th>Severidad</th><th>Servicio</th><th>Zona</th><th>Título</th><th>Estado</th><th>Creada</th></tr></thead>
+              <thead><tr><th>Sev.</th><th>Servicio</th><th>Zona</th><th>Título</th><th>Estado</th><th>Creada</th></tr></thead>
               <tbody>
                 ${filtered.map(a => `
                   <tr onclick="showAlertDetail('${esc(a.id)}')" class="${a._justCreated ? 'new-row' : ''}">
@@ -1203,8 +1334,8 @@
       </div>
     `;
 
-    document.querySelectorAll('#page-alertas [data-filter]').forEach(btn => {
-      btn.addEventListener('click', () => { STATE.alertFilter = btn.dataset.filter; renderAlertas(); });
+    document.querySelectorAll('#page-alertas [data-filter]').forEach(b => {
+      b.addEventListener('click', () => { STATE.alertFilter = b.dataset.filter; renderAlertas(); });
     });
   }
 
@@ -1224,19 +1355,19 @@
     document.getElementById('page-incidentes').innerHTML = `
       <div class="filters">
         ${filters.map(f => {
-          let count = f.key === 'all' ? DATA.incidents.length : f.key === 'open' ? DATA.incidents.filter(i => i.status !== 'resolved').length : DATA.incidents.filter(i => i.status === 'resolved').length;
-          return `<button class="filter-btn ${STATE.incidentFilter === f.key ? 'active' : ''}" data-ifilter="${f.key}">${f.label} (${count})</button>`;
+          const c = f.key === 'all' ? DATA.incidents.length : f.key === 'open' ? DATA.incidents.filter(i => i.status !== 'resolved').length : DATA.incidents.filter(i => i.status === 'resolved').length;
+          return `<button class="filter-btn ${STATE.incidentFilter === f.key ? 'active' : ''}" data-ifilter="${f.key}">${f.label} (${c})</button>`;
         }).join('')}
       </div>
       <div class="card">
         <div class="card-header">
           <h3>Incidentes</h3>
-          <span class="badge badge-info">${filtered.length} ${filtered.length === 1 ? 'resultado' : 'resultados'}</span>
+          <span class="badge badge-info">${filtered.length} resultados</span>
         </div>
         <div class="card-body" style="padding: 0;">
-          ${filtered.length === 0 ? '<div class="empty"><div class="empty-icon">✅</div><div>Sin incidentes en esta categoría</div></div>' : `
+          ${filtered.length === 0 ? '<div class="empty"><div class="empty-icon">✅</div><div>Sin incidentes</div></div>' : `
             <div class="table-wrap"><table>
-              <thead><tr><th>ID</th><th>Severidad</th><th>Título</th><th>Servicio</th><th>Zona</th><th>Asignado</th><th>Estado</th><th>Creado</th></tr></thead>
+              <thead><tr><th>ID</th><th>Sev.</th><th>Título</th><th>Servicio</th><th>Zona</th><th>Asignado</th><th>Estado</th><th>Creado</th></tr></thead>
               <tbody>
                 ${filtered.map(i => `
                   <tr onclick="showIncidentDetail('${esc(i.id)}')" class="${i._justCreated ? 'new-row' : ''}">
@@ -1257,15 +1388,15 @@
       </div>
     `;
 
-    document.querySelectorAll('#page-incidentes [data-ifilter]').forEach(btn => {
-      btn.addEventListener('click', () => { STATE.incidentFilter = btn.dataset.ifilter; renderIncidentes(); });
+    document.querySelectorAll('#page-incidentes [data-ifilter]').forEach(b => {
+      b.addEventListener('click', () => { STATE.incidentFilter = b.dataset.ifilter; renderIncidentes(); });
     });
   }
 
   // ==================== RENDER: EQUIPO ====================
   function renderEquipo() {
     document.getElementById('page-equipo').innerHTML = `
-      <div class="card" style="margin-bottom: 16px;">
+      <div class="card" style="margin-bottom: 14px;">
         <div class="card-header">
           <h3>Equipo On-Call</h3>
           <span class="badge badge-success">2 en guardia</span>
@@ -1276,9 +1407,9 @@
             <tbody>
               ${DATA.team.map(m => `
                 <tr>
-                  <td><div style="display:flex; align-items:center; gap:10px;"><div class="avatar" style="width:28px;height:28px;font-size:10px;">${esc(m.initials)}</div><span>${esc(m.name)}</span></div></td>
+                  <td><div style="display:flex; align-items:center; gap:8px;"><div class="avatar" style="width:26px;height:26px;font-size:10px;">${esc(m.initials)}</div><span>${esc(m.name)}</span></div></td>
                   <td>${esc(m.role)}</td>
-                  <td>${m.status === 'on-call' ? '<span class="badge badge-success">En guardia</span>' : m.status === 'available' ? '<span class="badge badge-info">Disponible</span>' : '<span class="badge badge-low">Fuera</span>'}</td>
+                  <td>${m.status === 'on-call' ? '<span class="badge badge-success">Guardia</span>' : m.status === 'available' ? '<span class="badge badge-info">Disponible</span>' : '<span class="badge badge-low">Fuera</span>'}</td>
                   <td><code>${esc(m.phone)}</code></td>
                 </tr>
               `).join('')}
@@ -1291,7 +1422,7 @@
         <div class="card">
           <div class="card-header"><h3>Turnos de la semana</h3></div>
           <div class="card-body">
-            <div style="display:flex; flex-direction:column; gap:12px;">
+            <div style="display:flex; flex-direction:column; gap:10px;">
               ${[
                 { day: 'Lunes', primary: 'María R.', secondary: 'Carlos G.' },
                 { day: 'Martes', primary: 'María R.', secondary: 'Carlos G.' },
@@ -1301,44 +1432,45 @@
                 { day: 'Sábado', primary: 'Carlos G.', secondary: 'Ana D.' },
                 { day: 'Domingo', primary: 'Carlos G.', secondary: 'Ana D.' }
               ].map(t => `
-                <div style="display:flex; justify-content:space-between; padding:10px 12px; background:var(--bg-2); border-radius:6px; font-size:13px;">
-                  <span style="font-weight:600;">${t.day}</span>
-                  <span style="color:var(--text-muted);">${t.primary} · <span style="opacity:0.7;">${t.secondary} (backup)</span></span>
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:10px 12px; background:var(--bg-2); border-radius:6px; font-size:12px; flex-wrap:wrap;">
+                  <span style="font-weight:600; min-width:70px;">${t.day}</span>
+                  <span style="color:var(--text-muted); text-align:right;">${t.primary} · ${t.secondary}</span>
                 </div>
               `).join('')}
             </div>
           </div>
         </div>
         <div class="card">
-          <div class="card-header"><h3>Carga de trabajo (semana)</h3></div>
-          <div class="card-body"><div class="chart-container" style="height: 300px;"><canvas id="chart-workload"></canvas></div></div>
+          <div class="card-header"><h3>Carga de trabajo</h3></div>
+          <div class="card-body"><div class="chart-container" style="height: 260px;"><canvas id="chart-workload"></canvas></div></div>
         </div>
       </div>
     `;
 
     destroyChart('workload');
-    const wlCtx = document.getElementById('chart-workload');
-    if (wlCtx) {
-      STATE.charts.workload = new Chart(wlCtx, {
+    const wl = document.getElementById('chart-workload');
+    if (wl) {
+      STATE.charts.workload = new Chart(wl, {
         type: 'bar',
-        data: { labels: ['María', 'Carlos', 'Ana', 'Luis', 'Diego'], datasets: [
-          { label: 'Incidentes atendidos', data: [12, 8, 10, 6, 3], backgroundColor: '#3b82f6', borderRadius: 4 },
-          { label: 'Alertas reconocidas', data: [18, 14, 16, 9, 4], backgroundColor: '#f59e0b', borderRadius: 4 }
+        data: { labels: ['María','Carlos','Ana','Luis','Diego'], datasets: [
+          { label: 'Incidentes', data: [12,8,10,6,3], backgroundColor: '#3b82f6', borderRadius: 4 },
+          { label: 'Alertas', data: [18,14,16,9,4], backgroundColor: '#f59e0b', borderRadius: 4 }
         ]},
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 14 } } }, scales: { y: { beginAtZero: true, grid: { color: '#1e293b' }, ticks: { precision: 0 } }, x: { grid: { display: false } } } }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10, font: { size: 10 } } } }, scales: { y: { beginAtZero: true, grid: { color: '#1e293b' }, ticks: { precision: 0, font: { size: 10 } } }, x: { grid: { display: false }, ticks: { font: { size: 10 } } } } }
       });
     }
   }
 
   // ==================== MODALES ====================
   function openModal(html) {
-    const overlay = document.getElementById('modal-overlay');
-    overlay.innerHTML = html;
-    overlay.classList.add('open');
+    const o = document.getElementById('modal-overlay');
+    o.innerHTML = html;
+    o.classList.add('open');
+    document.body.style.overflow = 'hidden';
   }
-
   function closeModal() {
     document.getElementById('modal-overlay').classList.remove('open');
+    document.body.style.overflow = '';
   }
 
   function showAlertDetail(id) {
@@ -1347,11 +1479,11 @@
     const actions = [];
     if (a.status === 'active') {
       actions.push(`<button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`);
-      actions.push(`<button class="btn btn-warning" style="background:var(--warning);color:#000;" onclick="acknowledgeAlert('${esc(a.id)}')">Reconocer</button>`);
+      actions.push(`<button class="btn" style="background:var(--warning);color:#000;" onclick="acknowledgeAlert('${esc(a.id)}')">Reconocer</button>`);
       actions.push(`<button class="btn btn-success" onclick="resolveAlert('${esc(a.id)}')">Resolver</button>`);
     } else if (a.status === 'acknowledged') {
       actions.push(`<button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`);
-      actions.push(`<button class="btn btn-success" onclick="resolveAlert('${esc(a.id)}')">Marcar como resuelta</button>`);
+      actions.push(`<button class="btn btn-success" onclick="resolveAlert('${esc(a.id)}')">Marcar resuelta</button>`);
     } else {
       actions.push(`<button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>`);
     }
@@ -1359,8 +1491,8 @@
     openModal(`
       <div class="modal">
         <div class="modal-header">
-          <div>
-            <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
+          <div style="min-width:0;">
+            <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px; flex-wrap:wrap;">
               ${severityBadge(a.severity)} ${statusBadge(a.status)}
             </div>
             <div class="modal-title">${esc(a.title)}</div>
@@ -1376,7 +1508,7 @@
             <dt>Servicio</dt><dd>${esc(a.service)}</dd>
             <dt>Zona</dt><dd><code>${esc(a.zone || '—')}</code></dd>
             <dt>Creada</dt><dd>${new Date(a.createdAt).toLocaleString('es-CO')}</dd>
-            ${a.ackedBy ? `<dt>Reconocida por</dt><dd>${esc(a.ackedBy)} (${timeAgo(a.ackedAt)})</dd>` : ''}
+            ${a.ackedBy ? `<dt>Reconocida</dt><dd>${esc(a.ackedBy)} (${timeAgo(a.ackedAt)})</dd>` : ''}
             ${a.resolvedAt ? `<dt>Resuelta</dt><dd>${new Date(a.resolvedAt).toLocaleString('es-CO')}</dd>` : ''}
           </dl>
         </div>
@@ -1388,15 +1520,15 @@
   function showIncidentDetail(id) {
     const inc = DATA.incidents.find(x => x.id === id);
     if (!inc) return;
-    const totalSteps = inc.runbook.length;
-    const doneSteps = inc.runbook.filter(r => r.done).length;
-    const progress = Math.round((doneSteps / totalSteps) * 100);
+    const total = inc.runbook.length;
+    const done = inc.runbook.filter(r => r.done).length;
+    const pct = Math.round((done / total) * 100);
 
     openModal(`
       <div class="modal">
         <div class="modal-header">
-          <div>
-            <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
+          <div style="min-width:0;">
+            <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px; flex-wrap:wrap;">
               ${severityBadge(inc.severity)}
               ${inc.status === 'open' ? '<span class="badge badge-danger">Abierto</span>' : inc.status === 'investigating' ? '<span class="badge badge-warning">Investigando</span>' : inc.status === 'mitigated' ? '<span class="badge badge-info">Mitigado</span>' : '<span class="badge badge-success">Resuelto</span>'}
             </div>
@@ -1408,26 +1540,26 @@
           <button class="modal-close" onclick="closeModal()">×</button>
         </div>
         <div class="modal-body">
-          <p style="color:var(--text-muted); margin-bottom:16px;">${esc(inc.description)}</p>
+          <p style="color:var(--text-muted); margin-bottom:16px; line-height:1.5;">${esc(inc.description)}</p>
           <dl class="grid-detail">
-            <dt>Asignado a</dt><dd>${esc(inc.assignedTo)}</dd>
+            <dt>Asignado</dt><dd>${esc(inc.assignedTo)}</dd>
             <dt>Zona</dt><dd><code>${esc(inc.zone || '—')}</code></dd>
             <dt>Impacto</dt><dd>${esc(inc.impact)}</dd>
             <dt>Creado</dt><dd>${new Date(inc.createdAt).toLocaleString('es-CO')}</dd>
             ${inc.resolvedAt ? `<dt>Resuelto</dt><dd>${new Date(inc.resolvedAt).toLocaleString('es-CO')}</dd>` : ''}
           </dl>
 
-          <h4 style="margin-top:20px; margin-bottom:8px; font-size:13px; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.5px;">Runbook · ${doneSteps}/${totalSteps} pasos (${progress}%)</h4>
-          <div class="runbook" id="runbook-list">
+          <h4 style="margin-top:20px; margin-bottom:8px; font-size:12px; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.5px;">Runbook · ${done}/${total} (${pct}%)</h4>
+          <div class="runbook">
             ${inc.runbook.map((r, idx) => `
               <label class="runbook-item ${r.done ? 'done' : ''}">
-                <input type="checkbox" ${r.done ? 'checked' : ''} data-runbook-idx="${idx}" data-inc-id="${esc(inc.id)}" />
+                <input type="checkbox" ${r.done ? 'checked' : ''} data-runbook-idx="${idx}" />
                 <span>${esc(r.text)}</span>
               </label>
             `).join('')}
           </div>
 
-          <h4 style="margin-top:20px; margin-bottom:8px; font-size:13px; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.5px;">Timeline</h4>
+          <h4 style="margin-top:20px; margin-bottom:8px; font-size:12px; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.5px;">Timeline</h4>
           <div class="timeline">
             ${inc.timeline.map(t => `
               <div class="timeline-item">
@@ -1439,7 +1571,7 @@
         </div>
         <div class="modal-footer">
           <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
-          ${inc.status !== 'resolved' ? `<button class="btn btn-primary" onclick="resolveIncident('${esc(inc.id)}')">Marcar como resuelto</button>` : ''}
+          ${inc.status !== 'resolved' ? `<button class="btn btn-primary" onclick="resolveIncident('${esc(inc.id)}')">Resolver</button>` : ''}
         </div>
       </div>
     `);
@@ -1449,11 +1581,11 @@
         const idx = Number(e.target.dataset.runbookIdx);
         inc.runbook[idx].done = e.target.checked;
         e.target.parentElement.classList.toggle('done', e.target.checked);
-        const newDone = inc.runbook.filter(r => r.done).length;
-        const newProgress = Math.round((newDone / totalSteps) * 100);
+        const nd = inc.runbook.filter(r => r.done).length;
+        const np = Math.round((nd / total) * 100);
         const h4 = document.querySelector('.runbook').previousElementSibling;
-        if (h4) h4.textContent = `Runbook · ${newDone}/${totalSteps} pasos (${newProgress}%)`;
-        toast('Progreso actualizado: ' + newDone + '/' + totalSteps, 'success');
+        if (h4) h4.textContent = `Runbook · ${nd}/${total} (${np}%)`;
+        toast('Progreso: ' + nd + '/' + total, 'success');
       });
     });
   }
@@ -1461,13 +1593,13 @@
   function showServiceDetail(id) {
     const s = DATA.services.find(x => x.id === id);
     if (!s) return;
-    const svcAlerts = DATA.alerts.filter(a => a.service === s.name && a.status !== 'resolved');
+    const a = DATA.alerts.filter(x => x.service === s.name && x.status !== 'resolved');
 
     openModal(`
       <div class="modal">
         <div class="modal-header">
           <div>
-            <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">${serviceStatusDot(s.status)}</div>
+            <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">${serviceStatusDot(s.status)}</div>
             <div class="modal-title">${esc(s.name)}</div>
             <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">${esc(s.region)} · <code>${esc(s.id)}</code></div>
           </div>
@@ -1475,20 +1607,20 @@
         </div>
         <div class="modal-body">
           <dl class="grid-detail">
-            <dt>Uptime (30d)</dt><dd>${s.uptime}%</dd>
-            <dt>Latencia p95</dt><dd>${s.p95}ms</dd>
-            <dt>Requests/s</dt><dd>${s.requests.toLocaleString()}</dd>
-            <dt>Alertas activas</dt><dd>${svcAlerts.length}</dd>
+            <dt>Uptime</dt><dd>${s.uptime}%</dd>
+            <dt>p95</dt><dd>${s.p95}ms</dd>
+            <dt>Req/s</dt><dd>${s.requests.toLocaleString()}</dd>
+            <dt>Alertas</dt><dd>${a.length}</dd>
           </dl>
-          ${svcAlerts.length > 0 ? `
-            <h4 style="margin-top:20px; margin-bottom:8px; font-size:13px; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.5px;">Alertas activas</h4>
-            ${svcAlerts.map(a => `
+          ${a.length > 0 ? `
+            <h4 style="margin-top:20px; margin-bottom:8px; font-size:12px; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.5px;">Alertas activas</h4>
+            ${a.map(x => `
               <div style="padding:10px; border:1px solid var(--border); border-radius:6px; margin-bottom:6px;">
-                <div style="display:flex; gap:8px; margin-bottom:4px;">${severityBadge(a.severity)}<strong style="font-size:13px;">${esc(a.title)}</strong></div>
-                <div style="font-size:12px; color:var(--text-muted);">${esc(a.message)}</div>
+                <div style="display:flex; gap:8px; margin-bottom:4px; flex-wrap:wrap;">${severityBadge(x.severity)}<strong style="font-size:13px;">${esc(x.title)}</strong></div>
+                <div style="font-size:12px; color:var(--text-muted); line-height:1.4;">${esc(x.message)}</div>
               </div>
             `).join('')}
-          ` : '<p style="color:var(--text-muted); margin-top:16px;">✓ Sin alertas activas para este servicio</p>'}
+          ` : '<p style="color:var(--text-muted); margin-top:16px;">✓ Sin alertas activas</p>'}
         </div>
         <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>
       </div>
@@ -1499,35 +1631,24 @@
   function acknowledgeAlert(id) {
     const a = DATA.alerts.find(x => x.id === id);
     if (!a) return;
-    a.status = 'acknowledged';
-    a.ackedBy = 'María Rodríguez';
-    a.ackedAt = Date.now();
+    a.status = 'acknowledged'; a.ackedBy = 'María Rodríguez'; a.ackedAt = Date.now();
     toast('Alerta ' + a.id + ' reconocida', 'success');
-    closeModal();
-    renderCurrentPage();
-    updateAlertCount();
+    closeModal(); renderCurrentPage(); updateAlertCount();
   }
-
   function resolveAlert(id) {
     const a = DATA.alerts.find(x => x.id === id);
     if (!a) return;
-    a.status = 'resolved';
-    a.resolvedAt = Date.now();
+    a.status = 'resolved'; a.resolvedAt = Date.now();
     toast('Alerta ' + a.id + ' resuelta', 'success');
-    closeModal();
-    renderCurrentPage();
-    updateAlertCount();
+    closeModal(); renderCurrentPage(); updateAlertCount();
   }
-
   function resolveIncident(id) {
     const inc = DATA.incidents.find(x => x.id === id);
     if (!inc) return;
-    inc.status = 'resolved';
-    inc.resolvedAt = Date.now();
+    inc.status = 'resolved'; inc.resolvedAt = Date.now();
     inc.timeline.push({ time: Date.now(), text: 'Incidente resuelto manualmente' });
     toast('Incidente ' + inc.id + ' resuelto', 'success');
-    closeModal();
-    renderCurrentPage();
+    closeModal(); renderCurrentPage();
   }
 
   // ==================== NAVEGACIÓN ====================
@@ -1535,9 +1656,11 @@
     STATE.page = page;
     document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === page));
     document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + page));
-    const titles = { dashboard: 'Dashboard', servicios: 'Servicios Monitoreados', alertas: 'Alertas', incidentes: 'Incidentes', equipo: 'Equipo y On-call' };
+    const titles = { dashboard: 'Dashboard', servicios: 'Servicios', alertas: 'Alertas', incidentes: 'Incidentes', equipo: 'Equipo' };
     document.getElementById('page-title').textContent = titles[page] || 'SentinelOps';
     renderCurrentPage();
+    closeSidebar();
+    document.getElementById('content').scrollTop = 0;
   }
 
   function renderCurrentPage() {
@@ -1546,30 +1669,19 @@
   }
 
   function updateAlertCount() {
-    const badge = document.getElementById('nav-alert-count');
-    if (badge) {
-      badge.textContent = getActiveAlertCount();
-      badge.classList.remove('pulse');
-      void badge.offsetWidth;
-      badge.classList.add('pulse');
-    }
+    const b = document.getElementById('nav-alert-count');
+    if (b) { b.textContent = getActiveAlertCount(); b.classList.remove('pulse'); void b.offsetWidth; b.classList.add('pulse'); }
   }
 
   // ==================== SIMULADOR ====================
   function openSimulatorMenu() {
-    if (STATE.simulating) {
-      toast('Ya hay un simulacro en curso', 'warning');
-      return;
-    }
-
+    if (STATE.simulating) { toast('Ya hay un simulacro en curso', 'warning'); return; }
     openModal(`
       <div class="modal">
         <div class="modal-header">
           <div>
-            <div class="modal-title">⚡ Simular incidencia en vivo</div>
-            <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
-              Elige un escenario para ver el flujo de detección, correlación y gestión en tiempo real.
-            </div>
+            <div class="modal-title">⚡ Simular incidencia</div>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">Elige un escenario para ver el flujo en tiempo real.</div>
           </div>
           <button class="modal-close" onclick="closeModal()">×</button>
         </div>
@@ -1584,22 +1696,18 @@
                   <div class="scenario-meta">
                     ${severityBadge(s.severity)}
                     <span class="badge badge-info">📍 ${esc(s.zone)}</span>
-                    <span style="font-size:11px; color:var(--text-dim);">${esc(s.service)}</span>
                   </div>
                 </div>
               </button>
             `).join('')}
           </div>
         </div>
-        <div class="modal-footer">
-          <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
-        </div>
+        <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button></div>
       </div>
     `);
   }
 
   function showLivePanel(scenario) {
-    const panel = document.getElementById('live-panel');
     document.getElementById('lp-name').textContent = scenario.title;
     document.getElementById('lp-meta').innerHTML = `
       ${severityBadge(scenario.severity)}
@@ -1614,156 +1722,116 @@
       <div class="live-step" data-step="notification"><div class="step-icon">4</div><div class="step-content"><div class="step-label">Notificación</div><div class="step-meta">Notificando canales...</div></div></div>
       <div class="live-step" data-step="acknowledgement"><div class="step-icon">5</div><div class="step-content"><div class="step-label">Reconocimiento</div><div class="step-meta">Esperando confirmación...</div></div></div>
     `;
-    panel.classList.add('open');
+    document.getElementById('live-panel').classList.add('open');
   }
 
-  function updateLiveStep(stepName, status, meta) {
-    const el = document.querySelector(`[data-step="${stepName}"]`);
+  function updateLiveStep(name, status, meta) {
+    const el = document.querySelector(`[data-step="${name}"]`);
     if (!el) return;
     el.classList.remove('active', 'done');
     if (status === 'active') el.classList.add('active');
-    if (status === 'done') {
-      el.classList.add('done');
-      el.querySelector('.step-icon').textContent = '✓';
-    }
+    if (status === 'done') { el.classList.add('done'); el.querySelector('.step-icon').textContent = '✓'; }
     if (meta) el.querySelector('.step-meta').textContent = meta;
-    // Update progress
-    const total = 5;
     const done = document.querySelectorAll('.live-step.done').length;
-    document.getElementById('lp-progress').style.width = Math.round((done / total) * 100) + '%';
+    document.getElementById('lp-progress').style.width = Math.round((done / 5) * 100) + '%';
   }
 
-  function closeLivePanel() {
-    document.getElementById('live-panel').classList.remove('open');
-  }
+  function closeLivePanel() { document.getElementById('live-panel').classList.remove('open'); }
 
-  async function startSimulation(scenarioIdx) {
-    const scenario = SCENARIOS[scenarioIdx];
-    if (!scenario || STATE.simulating) return;
-
+  async function startSimulation(idx) {
+    const sc = SCENARIOS[idx];
+    if (!sc || STATE.simulating) return;
     STATE.simulating = true;
     closeModal();
 
     const btn = document.getElementById('sim-btn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="sim-icon">⏳</span><span>Simulando...</span>';
+    btn.innerHTML = '<span class="sim-icon">⏳</span><span class="sim-label">Simulando...</span>';
 
-    // Panel aparece con el escenario
-    showLivePanel(scenario);
+    showLivePanel(sc);
     await sleep(400);
 
-    // ===== PASO 1: DETECCIÓN =====
     updateLiveStep('detection', 'active', 'Alertmanager evaluando regla...');
     await sleep(1200);
-    updateLiveStep('detection', 'done', `Alertmanager · disparada hace 0s`);
+    updateLiveStep('detection', 'done', 'Alertmanager · disparada');
 
-    // Toast grande
-    toast(`🚨 ALERTA ${scenario.severity.toUpperCase()}: ${scenario.title}`, 'error', 5000);
+    toast(`🚨 ALERTA ${sc.severity.toUpperCase()}: ${sc.title}`, 'error', 5000);
 
-    // Crear alerta
     const newAlert = {
       id: 'ALR-' + (4900 + Math.floor(Math.random() * 100)),
-      severity: scenario.severity,
-      service: scenario.service,
-      zone: scenario.zone,
-      title: scenario.title,
-      message: scenario.message,
-      status: 'active',
-      createdAt: Date.now(),
-      _justCreated: true
+      severity: sc.severity, service: sc.service, zone: sc.zone,
+      title: sc.title, message: sc.message, status: 'active',
+      createdAt: Date.now(), _justCreated: true
     };
     DATA.alerts.unshift(newAlert);
     updateAlertCount();
     renderCurrentPage();
 
-    // Flash en KPI de alertas
     const kpi = document.getElementById('kpi-alertas');
     if (kpi) { kpi.classList.add('flash'); setTimeout(() => kpi.classList.remove('flash'), 1500); }
 
-    // ===== PASO 2: CORRELACIÓN =====
-    updateLiveStep('correlation', 'active', 'Agrupando alertas relacionadas...');
+    updateLiveStep('correlation', 'active', 'Agrupando alertas...');
     await sleep(1500);
-    updateLiveStep('correlation', 'done', 'Incidente creado automáticamente');
+    updateLiveStep('correlation', 'done', 'Incidente creado');
 
-    // Crear incidente
-    const incidentId = 'INC-' + STATE.simCounter++;
-    const newIncident = {
-      id: incidentId,
-      title: scenario.title,
-      description: scenario.message,
-      severity: scenario.severity,
-      status: 'investigating',
-      service: scenario.service,
-      zone: scenario.zone,
-      assignedTo: scenario.assignedTo,
-      createdAt: Date.now(),
-      impact: scenario.impact,
-      runbook: scenario.runbook.map(text => ({ text, done: false })),
+    const incId = 'INC-' + STATE.simCounter++;
+    const newInc = {
+      id: incId, title: sc.title, description: sc.message,
+      severity: sc.severity, status: 'investigating',
+      service: sc.service, zone: sc.zone,
+      assignedTo: sc.assignedTo, createdAt: Date.now(), impact: sc.impact,
+      runbook: sc.runbook.map(t => ({ text: t, done: false })),
       timeline: [
-        { time: Date.now(), text: `Alerta ${newAlert.id} disparada (${scenario.title})` },
+        { time: Date.now(), text: `Alerta ${newAlert.id} disparada` },
         { time: Date.now() + 200, text: 'Incidente creado automáticamente' }
       ],
       _justCreated: true
     };
-    DATA.incidents.unshift(newIncident);
+    DATA.incidents.unshift(newInc);
     renderCurrentPage();
 
-    // ===== PASO 3: ASIGNACIÓN =====
-    updateLiveStep('assignment', 'active', 'Consultando rotación on-call...');
+    updateLiveStep('assignment', 'active', 'Consultando rotación...');
     await sleep(1500);
-    updateLiveStep('assignment', 'done', `${scenario.assignedTo} (${scenario.assignRole})`);
+    updateLiveStep('assignment', 'done', `${sc.assignedTo} (${sc.assignRole})`);
 
-    // ===== PASO 4: NOTIFICACIÓN =====
-    updateLiveStep('notification', 'active', `Enviando a ${scenario.notify.join(', ')}...`);
+    updateLiveStep('notification', 'active', `Enviando a ${sc.notify.length} canales...`);
     await sleep(1800);
-    updateLiveStep('notification', 'done', `Enviado a ${scenario.notify.length} canales`);
+    updateLiveStep('notification', 'done', `✓ ${sc.notify.join(', ')}`);
 
-    // ===== PASO 5: RECONOCIMIENTO =====
-    updateLiveStep('acknowledgement', 'active', `Esperando ACK de ${scenario.assignedTo}...`);
+    updateLiveStep('acknowledgement', 'active', `Esperando ACK...`);
     await sleep(1800);
-    updateLiveStep('acknowledgement', 'done', `${scenario.assignedTo} reconoció hace 0s`);
+    updateLiveStep('acknowledgement', 'done', `${sc.assignedTo} reconoció`);
 
-    // Actualizar estado de la alerta
     newAlert.status = 'acknowledged';
-    newAlert.ackedBy = scenario.assignedTo;
+    newAlert.ackedBy = sc.assignedTo;
     newAlert.ackedAt = Date.now();
 
-    // Añadir al timeline
-    newIncident.timeline.push(
-      { time: Date.now() - 3500, text: `${scenario.assignedTo} asignado como incident commander` },
-      { time: Date.now() - 2000, text: `Notificado a ${scenario.notify.join(', ')}` },
-      { time: Date.now(), text: `${scenario.assignedTo} reconoció el incidente. Iniciando investigación.` }
+    newInc.timeline.push(
+      { time: Date.now() - 3500, text: `${sc.assignedTo} asignado como incident commander` },
+      { time: Date.now() - 2000, text: `Notificado a ${sc.notify.join(', ')}` },
+      { time: Date.now(), text: `${sc.assignedTo} reconoció el incidente.` }
     );
 
-    // Toast final
-    toast(`✓ Incidente ${incidentId} gestionado — ${scenario.assignedTo} en investigación`, 'success', 4000);
+    toast(`✓ ${incId} gestionado — ${sc.assignedTo} investigando`, 'success', 4000);
 
-    // Auto-abrir el incidente
     await sleep(1200);
     closeLivePanel();
     STATE.simulating = false;
     btn.disabled = false;
-    btn.innerHTML = '<span class="sim-icon">⚡</span><span>Simular Incidencia</span>';
+    btn.innerHTML = '<span class="sim-icon">⚡</span><span class="sim-label">Simular Incidencia</span>';
 
-    // Refrescar datos visuales
     renderCurrentPage();
-
-    // Abrir modal del incidente
     await sleep(300);
-    showIncidentDetail(incidentId);
+    showIncidentDetail(incId);
   }
 
-  // ==================== LIVE MODE (auto-refresh) ====================
+  // ==================== LIVE MODE ====================
   function startLiveMode() {
     setInterval(() => {
       if (STATE.simulating) return;
       DATA.services.forEach(s => {
-        if (s.status === 'operational' && s.p95 > 0) {
-          s.p95 = Math.max(10, s.p95 + Math.floor((Math.random() - 0.5) * 10));
-        }
-        if (s.requests > 0) {
-          s.requests = Math.max(0, s.requests + Math.floor((Math.random() - 0.5) * 50));
-        }
+        if (s.status === 'operational' && s.p95 > 0) s.p95 = Math.max(10, s.p95 + Math.floor((Math.random() - 0.5) * 10));
+        if (s.requests > 0) s.requests = Math.max(0, s.requests + Math.floor((Math.random() - 0.5) * 50));
       });
       if (STATE.page === 'dashboard' || STATE.page === 'servicios') renderCurrentPage();
     }, 5000);
@@ -1771,9 +1839,8 @@
 
   function startClock() {
     const el = document.getElementById('clock');
-    setInterval(() => {
-      el.textContent = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    }, 1000);
+    const t = () => { el.textContent = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' }); };
+    t(); setInterval(t, 1000);
   }
 
   // ==================== INIT ====================
@@ -1782,11 +1849,13 @@
       item.addEventListener('click', () => navigate(item.dataset.page));
     });
     document.getElementById('sim-btn').addEventListener('click', openSimulatorMenu);
+    document.getElementById('hamburger').addEventListener('click', openSidebar);
+    document.getElementById('sidebar-backdrop').addEventListener('click', closeSidebar);
     document.getElementById('modal-overlay').addEventListener('click', (e) => {
       if (e.target.id === 'modal-overlay') closeModal();
     });
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeModal();
+      if (e.key === 'Escape') { closeModal(); closeSidebar(); }
     });
 
     updateAlertCount();
